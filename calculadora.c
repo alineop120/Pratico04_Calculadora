@@ -2,164 +2,145 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include <math.h>
+#include <ctype.h>  // Para isdigit
 
 typedef struct {
-    float valores[512];
-    int topo;
-} Pilha;
+    double items[100];
+    int top;
+} Stack;
 
-void inicializaPilha(Pilha *p) {
-    p->topo = -1;
-}
-
-void empilha(Pilha *p, float valor) {
-    p->valores[++p->topo] = valor;
-}
-
-float desempilha(Pilha *p) {
-    return p->valores[p->topo--];
-}
-
-int pilhaVazia(Pilha *p) {
-    return p->topo == -1;
-}
-
-int eOperando(char ch) {
-    return isdigit(ch) || ch == '.';
-}
-
-int eOperador(char ch) {
-    return ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '^' || ch == 's' || ch == 'c' || ch == 'l';
-}
-
-int precedencia(char op) {
-    switch (op) {
-        case '+':
-        case '-':
-            return 1;
-        case '*':
-        case '/':
-            return 2;
-        case '^':
-        case 's':
-        case 'c':
-        case 'l':
-            return 3;
-        default:
-            return 0;
+void push(Stack *s, double value) {
+    if (s->top == 99) {
+        printf("Erro: Pilha cheia\n");
+        exit(EXIT_FAILURE);
     }
+    s->top++;
+    s->items[s->top] = value;
 }
 
-char *getFormaInFixa(char *Str) {
-    Pilha pilha;
-    inicializaPilha(&pilha);
-    int tamanho = strlen(Str);
-    char *inFixa = (char *)malloc(tamanho * sizeof(char));
-    int j = 0;
+double pop(Stack *s) {
+    if (s->top == -1) {
+        printf("Erro: Pilha vazia\n");
+        exit(EXIT_FAILURE);
+    }
+    double value = s->items[s->top];
+    s->top--;
+    return value;
+}
 
-    for (int i = 0; i < tamanho; i++) {
-        if (eOperando(Str[i])) {
-            while (eOperando(Str[i])) {
-                inFixa[j++] = Str[i++];
+double peek(Stack *s) {
+    if (s->top == -1) {
+        printf("Erro: Pilha vazia\n");
+        exit(EXIT_FAILURE);
+    }
+    return s->items[s->top];
+}
+
+int is_operator(char c) {
+    return (c == '+' || c == '-' || c == '*' || c == '/' || c == '^'
+            || c == 's' || c == 'c' || c == 't' || c == 'l');
+}
+
+int precedence(char c) {
+    if (c == '+' || c == '-') return 1;
+    else if (c == '*' || c == '/') return 2;
+    else if (c == '^' || c == 's' || c == 'c' || c == 't' || c == 'l') return 3;
+    else return 0;
+}
+
+void infix_to_postfix(char infix[], char postfix[]) {
+    Stack stack;
+    stack.top = -1;
+    int i = 0, j = 0;
+    while (infix[i] != '\0') {
+        if (isdigit(infix[i]) || infix[i] == '.') {
+            while (isdigit(infix[i]) || infix[i] == '.') {
+                postfix[j++] = infix[i++];
             }
-            inFixa[j++] = ' ';
+            postfix[j++] = ' ';
             i--;
-        } else if (eOperador(Str[i])) {
-            while (!pilhaVazia(&pilha) && precedencia(pilha.valores[pilha.topo]) >= precedencia(Str[i])) {
-                inFixa[j++] = pilha.valores[pilha.topo--];
-                inFixa[j++] = ' ';
+        } else if (infix[i] == '(') {
+            push(&stack, infix[i]);
+        } else if (infix[i] == ')') {
+            while (stack.top != -1 && peek(&stack) != '(') {
+                postfix[j++] = pop(&stack);
+                postfix[j++] = ' ';
             }
-            empilha(&pilha, Str[i]);
-        } else if (Str[i] == '(') {
-            empilha(&pilha, Str[i]);
-        } else if (Str[i] == ')') {
-            while (pilha.valores[pilha.topo] != '(') {
-                inFixa[j++] = pilha.valores[pilha.topo--];
-                inFixa[j++] = ' ';
+            pop(&stack);
+        } else if (is_operator(infix[i])) {
+            while (stack.top != -1 && precedence(peek(&stack)) >= precedence(infix[i])) {
+                postfix[j++] = pop(&stack);
+                postfix[j++] = ' ';
             }
-            pilha.topo--;  // Desempilha '('
+            push(&stack, infix[i]);
         }
+        i++;
     }
-
-    while (!pilhaVazia(&pilha)) {
-        inFixa[j++] = pilha.valores[pilha.topo--];
-        inFixa[j++] = ' ';
+    while (stack.top != -1) {
+        postfix[j++] = pop(&stack);
+        postfix[j++] = ' ';
     }
-
-    inFixa[j] = '\0';
-    return inFixa;
+    postfix[j] = '\0';
 }
 
-float getValor(char *Str) {
-    Pilha pilha;
-    inicializaPilha(&pilha);
-    int tamanho = strlen(Str);
-
-    for (int i = 0; i < tamanho; i++) {
-        if (eOperando(Str[i])) {
-            char numero[20];
-            int j = 0;
-            while (eOperando(Str[i])) {
-                numero[j++] = Str[i++];
-            }
-            numero[j] = '\0';
-            float valor = atof(numero);
-            empilha(&pilha, valor);
-            i--;
-        } else if (eOperador(Str[i])) {
-            float op2, op1, resultado;
-
-            switch (Str[i]) {
+double evaluate_postfix(char postfix[]) {
+    Stack stack;
+    stack.top = -1;
+    int i = 0;
+    double operand1, operand2, result;
+    char *token;
+    char delimiter[] = " ";
+    
+    token = strtok(postfix, delimiter);
+    
+    while (token != NULL) {
+        if (isdigit(token[0]) || (token[0] == '-' && isdigit(token[1]))) {
+            push(&stack, atof(token));
+        } else if (token[0] == '+' || token[0] == '-' || token[0] == '*' || token[0] == '/' || token[0] == '^') {
+            operand2 = pop(&stack);
+            operand1 = pop(&stack);
+            switch (token[0]) {
                 case '+':
-                    op2 = desempilha(&pilha);
-                    op1 = desempilha(&pilha);
-                    resultado = op1 + op2;
-                    empilha(&pilha, resultado);
+                    result = operand1 + operand2;
                     break;
                 case '-':
-                    op2 = desempilha(&pilha);
-                    op1 = desempilha(&pilha);
-                    resultado = op1 - op2;
-                    empilha(&pilha, resultado);
+                    result = operand1 - operand2;
                     break;
                 case '*':
-                    op2 = desempilha(&pilha);
-                    op1 = desempilha(&pilha);
-                    resultado = op1 * op2;
-                    empilha(&pilha, resultado);
+                    result = operand1 * operand2;
                     break;
                 case '/':
-                    op2 = desempilha(&pilha);
-                    op1 = desempilha(&pilha);
-                    resultado = op1 / op2;
-                    empilha(&pilha, resultado);
+                    result = operand1 / operand2;
                     break;
                 case '^':
-                    op2 = desempilha(&pilha);
-                    op1 = desempilha(&pilha);
-                    resultado = pow(op1, op2);
-                    empilha(&pilha, resultado);
+                    result = pow(operand1, operand2);
                     break;
-                case 's':
-                    op1 = desempilha(&pilha);
-                    resultado = sin(op1);
-                    empilha(&pilha, resultado);
-                    break;
-                case 'c':
-                    op1 = desempilha(&pilha);
-                    resultado = cos(op1);
-                    empilha(&pilha, resultado);
-                    break;
-                case 'l':
-                    op1 = desempilha(&pilha);
-                    resultado = log(op1);
-                    empilha(&pilha, resultado);
+                default:
                     break;
             }
+            push(&stack, result);
+        } else if (token[0] == 's' || token[0] == 'c' || token[0] == 't' || token[0] == 'l') {
+            operand1 = pop(&stack);
+            switch (token[0]) {
+                case 's':
+                    result = sin(operand1 * M_PI / 180.0); // Converte para radianos
+                    break;
+                case 'c':
+                    result = cos(operand1 * M_PI / 180.0); // Converte para radianos
+                    break;
+                case 't':
+                    result = tan(operand1 * M_PI / 180.0); // Converte para radianos
+                    break;
+                case 'l':
+                    result = log(operand1); // Logaritmo na base natural (ln)
+                    break;
+                default:
+                    break;
+            }
+            push(&stack, result);
         }
+        token = strtok(NULL, delimiter);
     }
-
-    return desempilha(&pilha);
+    return pop(&stack);
 }

@@ -1,13 +1,15 @@
-#ifndef EXPRESSAO_H
-#define EXPRESSAO_H
+#ifndef CALCULADORA_H
+#define CALCULADORA_H
 
+// Definição do TAD Expressão
 typedef struct {
-    char posFixa[512];     // Expressão na forma pos fixa, como 3 12 4 + *
-    char inFixa[512];      // Expressão na forma pos fixa, como 3 * (12 + 4)
-    float Valor;           // Valor numérico da expressão  
+    char infix[100]; // Expressão na notação infix
+    char postfix[100]; // Expressão na notação postfix
+    double valor; // Valor da expressão
 } Expressao;
 
-char *getFormaInFixa(char *Str);    // Retorna a forma inFixa de Str (posFixa)
-float getValor(char *Str);          // Calcula o valor de Str (na forma posFixa)
+// Protótipos das funções
+void infix_to_postfix(char infix[], char postfix[]);
+double evaluate_postfix(char postfix[]);
 
-#endif
+#endif /* CALCULADORA_H */
