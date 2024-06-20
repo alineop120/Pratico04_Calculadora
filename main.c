@@ -1,37 +1,19 @@
-#include "calculadora.h"
 #include <stdio.h>
-#include <string.h>
-
-// Função para executar um teste
-void run_test(char infix[], char expected_description[]) {
-    Expressao exp;
-    strcpy(exp.infix, infix);
-    
-    // Converter para postfix
-    infix_to_postfix(exp.infix, exp.postfix);
-    
-    // Avaliar e mostrar expressões e resultados
-    printf("Expressão infix: %s\n", exp.infix);
-    printf("Expressão postfix: %s\n", exp.postfix);
-    
-    // Avaliar e mostrar resultado
-    exp.valor = evaluate_postfix(exp.postfix);
-    printf("Resultado: %.2lf\n", exp.valor);
-    printf("Aproximadamente: %s\n\n", expected_description);
-}
+#include <stdlib.h>
+#include "calculadora.h"
+#include <math.h>
 
 int main() {
-    // Teste 6
-    run_test("2 3 + l 5 /", "Aprox. 0.14");
+    char posFixa[] = "2 3 + log 5 /";
+    
+    // Convertendo para a forma infixa
+    char *inFixa = getFormaInFixa(posFixa);
+    printf("Forma inFixa: %s\n", inFixa);
+    free(inFixa);  // Liberando a memória alocada pelo malloc em getFormaInFixa
 
-    // Teste 7
-    run_test("10 l 3 ^ 2 +", "3");
-
-    // Teste 8
-    run_test("45 60 + 30 c *", "Aprox. 90.93");
-
-    // Teste 9
-    run_test("0.5 45 s 2 ^ +", "1");
-
+    // Calculando o valor da expressão
+    float valor = getValor(posFixa);
+    printf("Valor da expressao: %.2f\n", valor);
+    
     return 0;
 }
